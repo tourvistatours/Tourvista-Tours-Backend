@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id // Clerk user ID
+  email     String   @unique
+  firstName String
+  lastName  String
+  role      UserRole @default(USER)
+
+  createdAt DateTime    @default(now())  @db.Timestamptz(3)
+
+  bookings  Booking[]
+  payments  Payment[]
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model Tour {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  location    String
+  price       Float
+  duration    Int      // days
+
+  minGuests   Int       @default(1)
+  maxGuests   Int       @default(10)
+
+  image       String?
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())  @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt       @db.Timestamptz(3)
+
+  bookings    Booking[]
+}
+
+model Booking {
+  id                  Int      @id @default(autoincrement())
+
+  userId              String
+  user                User     @relation(fields: [userId], references: [id])
+
+  tourId              Int
+  tour                Tour     @relation(fields: [tourId], references: [id])
+
+  arrivalDate         DateTime
+  numberOfTravellers  Int
+
+  totalAmount Float
+
+  status              BookingStatus @default(PENDING)
+
+  payment             Payment?
+
+  notes               String?
+
+  createdAt           DateTime @default(now())  @db.Timestamptz(3)
+  updatedAt           DateTime @updatedAt       @db.Timestamptz(3)
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+
+  bookingId     Int           @unique
+  booking       Booking       @relation(fields: [bookingId], references: [id])
+
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+
+  amount        Float
+  type          PaymentType
+
+  method        PaymentMethod @default(WEBXPAY)
+  status        PaymentStatus @default(PENDING)
+
+  transactionId String?       // WebXPay reference
+  gatewayData   Json?         // raw response from WebXPay
+
+  createdAt     DateTime @default(now())  @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt       @db.Timestamptz(3)
+}
+
+enum PaymentType {
+  FULL
+  ADVANCE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  WEBXPAY
+}
+
+model Contact {
+  id        Int      @id @default(autoincrement())
+
+  name      String
+  email     String
+  subject   String
+  message   String
+
+  isRead    Boolean  @default(false)  // admin view tracking
+
+  createdAt DateTime @default(now())  @db.Timestamptz(3)
+}

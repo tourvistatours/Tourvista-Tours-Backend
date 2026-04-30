@@ -6,17 +6,19 @@ import { ConfigModule } from '@nestjs/config';
 
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
 import { WebhookModule } from './modules/webhook/webhook.module';
+import { ToursModule } from './modules/tours/tours.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { ContactModule } from './modules/contact/contact.module';
 
 import { AuthGuard } from './auth/guards/auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 
+import { ClerkClientProvider } from './infrastructure/providers/clerk.provider';
+import { CloudinaryModule } from './infrastructure/cloudinary/cloudinary.module';
+
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ClerkClientProvider } from './infrastructure/providers/clerk.provider';
-import { ToursModule } from './modules/tours/tours.module';
-import { CloudinaryModule } from './infrastructure/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -50,9 +52,10 @@ import { CloudinaryModule } from './infrastructure/cloudinary/cloudinary.module'
 
     // 🧩 Feature modules
     WebhookModule,
-    BookingsModule,
-    ContactModule,
     ToursModule,
+    BookingsModule,
+    PaymentsModule,
+    ContactModule,
   ],
   controllers: [AppController],
   providers: [

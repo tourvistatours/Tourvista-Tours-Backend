@@ -1,6 +1,5 @@
 import { Type } from 'class-transformer';
 import {
-  IsNumber,
   IsOptional,
   IsString,
   IsDateString,
@@ -15,7 +14,6 @@ export class UpdateBookingUserDto {
   arrivalDate?: string;
 
   @Type(() => Number)
-  @IsNumber({}, { message: 'Number of guests must be a number' })
   @IsNotEmpty({ message: 'Number of guests is required' })
   @Min(1, { message: 'There must be at least 1 guest' })
   numberOfTravellers?: number;

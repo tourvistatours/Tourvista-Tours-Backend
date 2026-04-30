@@ -25,6 +25,7 @@ export function setupSecurity(app: INestApplication) {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      stopAtFirstError: true,
     }),
   );
 }

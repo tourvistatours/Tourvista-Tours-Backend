@@ -5,6 +5,7 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { AppModule } from './app.module';
+import { setupSwagger } from './common/config/swagger.config';
 import { setupSecurity } from './common/security/security.config';
 
 async function bootstrap() {
@@ -34,6 +35,11 @@ async function bootstrap() {
 
   // 📦 JSON parser
   app.use(express.json());
+
+  // 📝 Swagger setup
+  if (environment === 'development') {
+    setupSwagger(app);
+  }
 
   await app.listen(port);
 

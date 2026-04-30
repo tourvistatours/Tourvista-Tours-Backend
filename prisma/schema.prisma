@@ -55,6 +55,7 @@ model Booking {
   tour                Tour     @relation(fields: [tourId], references: [id])
 
   arrivalDate         DateTime
+  checkoutDate        DateTime
   numberOfTravellers  Int
 
   totalAmount Float
@@ -71,6 +72,7 @@ model Booking {
 
 enum BookingStatus {
   PENDING
+  ACTIVE
   CONFIRMED
   CANCELLED
 }

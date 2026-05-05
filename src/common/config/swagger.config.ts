@@ -6,20 +6,17 @@ export function setupSwagger(app: INestApplication): void {
     .setTitle('Tourvista Tours | Core API')
     .setDescription(
       `
-        ## 🚀 Welcome to the Tourvista API
-        This API manages the complete travel lifecycle, from package discovery to secure booking.
-        
-        ### 🔑 Authentication
-        - **User/Admin:** Authenticated via **Clerk JWT**. 
-        - **Webhooks:** Secured via signature verification (Clerk/WebXPay).
-        
-        ### 📡 Core Workflows
-        - **Tours:** Management of tour packages and itineraries.
-        - **Bookings:** Handling reservations and payment states with **WebXPay**.
-        - **Inquiries:** Direct client-to-admin messaging system.
-        - **Sync:** Automated Clerk-to-Database synchronization via webhooks.
-        
-        *Refer to the "Schemas" section at the bottom for full data model specifications.*
+      ## 🚀 Welcome to the Tourvista API
+      This API manages the complete travel lifecycle, from discovery to secure booking.
+
+      ### 🔑 Authentication
+      - **User/Admin:** All protected routes require a **Clerk JWT**. 
+      - Use the **Authorize** button below and enter your token as \`Bearer <token>\`.
+
+      ### 📡 Key Features
+      - **Tours & Attractions:** Managed inventory with Cloudinary image integration.
+      - **Bookings:** Lifecycle management integrated with **WebXPay**.
+      - **Webhooks:** Automated Clerk-to-DB synchronization.
       `,
     )
     .setVersion('1.0.0')
@@ -33,32 +30,9 @@ export function setupSwagger(app: INestApplication): void {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter your Clerk JWT token here',
-        in: 'header',
+        description: 'Enter your Clerk JWT token',
       },
       'clerk-auth',
-    )
-    .addTag(
-      'Tours',
-      'Catalog discovery for guests and inventory management for administrators',
-    )
-    .addTag(
-      'Bookings',
-      'Reservation lifecycle: User history and Administrative oversight with status control',
-    )
-    .addTag(
-      'Contact',
-      'Lead generation via contact forms and Admin dashboard for inquiry processing',
-    )
-    .addTag(
-      'Payments',
-      'Financial transaction processing via WebXPay integration',
-    )
-    .addTag('Webhook', 'Automated data synchronization for Clerk users')
-    .addTag(
-      'App',
-      'Infrastructure utilities, including health checks and service heartbeat',
     )
     .build();
 
@@ -69,6 +43,8 @@ export function setupSwagger(app: INestApplication): void {
       persistAuthorization: true,
       displayRequestDuration: true,
       filter: true,
+      docExpansion: 'list',
+      defaultModelsExpandDepth: 1,
     },
     customSiteTitle: 'Tourvista Tours API Docs',
   });

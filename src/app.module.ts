@@ -19,6 +19,9 @@ import { CloudinaryModule } from './infrastructure/cloudinary/cloudinary.module'
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AttractionsModule } from './modules/attractions/attractions.module';
+import { CultureModule } from './modules/culture/culture.module';
+import { ShowcasesModule } from './modules/showcases/showcases.module';
 
 @Module({
   imports: [
@@ -56,6 +59,9 @@ import { AppService } from './app.service';
     BookingsModule,
     PaymentsModule,
     ContactModule,
+    AttractionsModule,
+    CultureModule,
+    ShowcasesModule,
   ],
   controllers: [AppController],
   providers: [

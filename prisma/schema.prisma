@@ -7,8 +7,126 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
+
+
+
+model Attraction {
+  id              String           @id @default(cuid())
+  title           String
+  description     String           @db.Text
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  attractionItems AttractionItem[]
+}
+
+model AttractionItem {
+  id            String                @id @default(cuid())
+  title         String
+  description   String                @db.Text
+  mainImageUrl  String
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  attractionId  String
+  attraction    Attraction            @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+
+  gallery       AttractionItemImage[]
+}
+
+model AttractionItemImage {
+  id               String         @id @default(cuid())
+  imageUrl         String
+  publicId         String
+  createdAt        DateTime       @default(now())
+
+  attractionItemId String
+  attractionItem   AttractionItem @relation(fields: [attractionItemId], references: [id], onDelete: Cascade)
+}
+
+
+
+
+
+model Culture {
+  id           String        @id @default(cuid())
+  title        String
+  description  String        @db.Text
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  cultureItems CultureItem[]
+}
+
+model CultureItem {
+  id           String             @id @default(cuid())
+  title        String
+  description  String             @db.Text
+  mainImageUrl String
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  cultureId    String
+  culture      Culture            @relation(fields: [cultureId], references: [id], onDelete: Cascade)
+
+  gallery      CultureItemImage[]
+}
+
+model CultureItemImage {
+  id            String      @id @default(cuid())
+  imageUrl      String
+  publicId      String
+  createdAt     DateTime    @default(now())
+
+  cultureItemId String
+  cultureItem   CultureItem @relation(fields: [cultureItemId], references: [id], onDelete: Cascade)
+}
+
+
+
+
+
+model Showcase {
+  id            String         @id @default(cuid())
+  title         String
+  description   String         @db.Text
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  showcaseItems ShowcaseItem[]
+}
+
+model ShowcaseItem {
+  id            String              @id @default(cuid())
+  title         String
+  description   String              @db.Text
+  mainImageUrl  String
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  showcaseId    String
+  showcase      Showcase            @relation(fields: [showcaseId], references: [id], onDelete: Cascade)
+
+  gallery       ShowcaseItemImage[]
+}
+
+model ShowcaseItemImage {
+  id             String       @id @default(cuid())
+  imageUrl       String
+  publicId       String
+  createdAt      DateTime     @default(now())
+
+  showcaseItemId String
+  showcaseItem   ShowcaseItem @relation(fields: [showcaseItemId], references: [id], onDelete: Cascade)
+}
+
+
+
+
+
 model User {
-  id        String   @id // Clerk user ID
+  id        String   @id                // CLERK USER ID
   email     String   @unique
   firstName String
   lastName  String
@@ -24,6 +142,10 @@ enum UserRole {
   USER
   ADMIN
 }
+
+
+
+
 
 model Tour {
   id          Int      @id @default(autoincrement())
@@ -44,6 +166,10 @@ model Tour {
 
   bookings    Booking[]
 }
+
+
+
+
 
 model Booking {
   id                  Int      @id @default(autoincrement())
@@ -76,6 +202,10 @@ enum BookingStatus {
   CONFIRMED
   CANCELLED
 }
+
+
+
+
 
 model Payment {
   id            Int           @id @default(autoincrement())
@@ -116,6 +246,10 @@ enum PaymentMethod {
   WEBXPAY
 }
 
+
+
+
+
 model Contact {
   id        Int      @id @default(autoincrement())
 
@@ -124,7 +258,7 @@ model Contact {
   subject   String
   message   String
 
-  isRead    Boolean  @default(false)  // admin view tracking
+  isRead    Boolean  @default(false)
 
   createdAt DateTime @default(now())  @db.Timestamptz(3)
 }

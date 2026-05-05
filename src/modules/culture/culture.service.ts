@@ -333,9 +333,9 @@ export class CultureService {
     });
 
     if (!item) throw new NotFoundException('Item not found');
-    if (item._count.gallery + files.length > 10) {
+    if (item._count.gallery + files.length > 20) {
       throw new ConflictException(
-        'Gallery limit reached (Max 10 images total)',
+        'Gallery limit reached (Max 20 images total)',
       );
     }
 

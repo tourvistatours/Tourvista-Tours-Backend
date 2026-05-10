@@ -1,7 +1,6 @@
 import {
   Injectable,
   NotFoundException,
-  ConflictException,
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
@@ -16,6 +15,7 @@ import { UpdateBookingUserDto } from './dto/update-booking-user.dto';
 
 import { BookingStatus } from '../../common/enums/booking-status.enum';
 import { addDays } from 'date-fns';
+import { Role } from '../../auth/enums/role.enum';
 
 @Injectable()
 export class BookingsService {
@@ -25,33 +25,29 @@ export class BookingsService {
    * HELPER: CHECKS IF A TOUR IS AVAILABLE FOR A SPECIFIC DATE RANGE
    * @throws CONFLICTEXCEPTION IF DATES OVERLAP
    */
-  /**
-   * HELPER: VALIDATE TOUR AVAILABILITY
-   * CHECKS IF ANY BOOKINGS OVERLAP WITH THE REQUESTED RANGE
-   */
-  private async validateAvailability(
-    tourId: number,
-    start: Date,
-    end: Date,
-    excludeId?: number,
-  ) {
-    const overlap = await this.prisma.booking.findFirst({
-      where: {
-        tourId,
-        id: excludeId ? { not: excludeId } : undefined,
-        AND: [
-          { arrivalDate: { lt: addDays(end, 1) } },
-          { checkoutDate: { gt: addDays(start, -1) } },
-        ],
-      },
-    });
+  // private async validateAvailability(
+  //   tourId: number,
+  //   start: Date,
+  //   end: Date,
+  //   excludeId?: number,
+  // ) {
+  //   const overlap = await this.prisma.booking.findFirst({
+  //     where: {
+  //       tourId,
+  //       id: excludeId ? { not: excludeId } : undefined,
+  //       AND: [
+  //         { arrivalDate: { lt: addDays(end, 1) } },
+  //         { checkoutDate: { gt: addDays(start, -1) } },
+  //       ],
+  //     },
+  //   });
 
-    if (overlap) {
-      throw new ConflictException(
-        `Tour dates ${start.toLocaleDateString()} - ${end.toLocaleDateString()} are already reserved.`,
-      );
-    }
-  }
+  //   if (overlap) {
+  //     throw new ConflictException(
+  //       `Tour dates ${start.toLocaleDateString()} - ${end.toLocaleDateString()} are already reserved.`,
+  //     );
+  //   }
+  // }
 
   async create(userId: string, data: CreateBookingDto) {
     // VERIFY TOUR EXISTENCE AND ACTIVE STATUS
@@ -71,7 +67,7 @@ export class BookingsService {
     const start = new Date(data.arrivalDate);
     const end = addDays(start, tour.duration - 1);
 
-    await this.validateAvailability(data.tourId, start, end);
+    // await this.validateAvailability(data.tourId, start, end);
 
     // CREATE BOOKING
     const booking = await this.prisma.booking.create({
@@ -86,6 +82,30 @@ export class BookingsService {
     });
 
     return { bookingId: booking.id };
+  }
+
+  async getStats() {
+    // GET COUNTS GROUPED BY STATUS
+    const statusCounts = await this.prisma.booking.groupBy({
+      by: ['status'],
+      _count: {
+        id: true,
+      },
+    });
+
+    // GET THE GRAND TOTAL
+    const totalCount = await this.prisma.booking.count();
+
+    // FORMATTING RESPONSE INTO A CLEAN OBJECT
+    const stats = statusCounts.reduce(
+      (acc, curr) => {
+        acc[curr.status] = curr._count.id;
+        return acc;
+      },
+      { total: totalCount } as Record<string, number>,
+    );
+
+    return stats;
   }
 
   async findAdminAll(query: QueryAdminBookingDto) {
@@ -104,7 +124,7 @@ export class BookingsService {
         },
       }),
       ...((query.fromDate || query.toDate) && {
-        createdAt: {
+        arrivalDate: {
           ...(query.fromDate && {
             gte: new Date(new Date(query.fromDate).setHours(0, 0, 0, 0)),
           }),
@@ -120,6 +140,20 @@ export class BookingsService {
         where,
         skip,
         take: limit,
+        include: {
+          tour: {
+            select: {
+              title: true,
+            },
+          },
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.booking.count({ where }),
@@ -159,6 +193,7 @@ export class BookingsService {
           },
           tour: {
             select: {
+              id: true,
               title: true,
               minGuests: true,
               maxGuests: true,
@@ -215,7 +250,7 @@ export class BookingsService {
       const start = new Date(data.arrivalDate);
       const end = addDays(start, current.tour.duration - 1);
 
-      await this.validateAvailability(current.tourId, start, end, id);
+      // await this.validateAvailability(current.tourId, start, end, id);
       updateData.checkoutDate = end;
     }
 
@@ -239,21 +274,35 @@ export class BookingsService {
     return { bookingId: booking.id };
   }
 
-  async remove(id: number, userId: string) {
+  async remove(id: number, userId: string, role: Role) {
     const current = await this.prisma.booking.findUnique({
       where: { id },
+      include: { payment: true },
     });
 
     if (!current) throw new NotFoundException('Booking not found');
-    if (current.userId !== userId)
+    // 1. Permission Check
+    if (role === Role.USER && current.userId !== userId) {
       throw new ForbiddenException(
         'You do not have permission to delete this record',
       );
-    if (current.status !== BookingStatus.PENDING)
+    }
+
+    // 2. Status Check
+    if (current.status !== BookingStatus.PENDING) {
       throw new BadRequestException(
         `Cannot delete a ${current.status} booking`,
       );
+    }
 
+    // 3. Payment Dependency Check
+    if (current.payment) {
+      throw new BadRequestException(
+        'Cannot delete booking because it has associated payment records. Please cancel the booking instead.',
+      );
+    }
+
+    // 4. Final Delete
     const booking = await this.prisma.booking.delete({
       where: { id },
     });

@@ -31,6 +31,12 @@ export class BookingsController {
     return this.bookingsService.create(userId, body);
   }
 
+  @Get('stats')
+  @Roles(Role.ADMIN)
+  getStats() {
+    return this.bookingsService.getStats();
+  }
+
   @Get('admin')
   @Roles(Role.ADMIN)
   findAdminAll(@Query() query: QueryAdminBookingDto) {
@@ -63,7 +69,11 @@ export class BookingsController {
   }
 
   @Delete(':id')
-  remove(@GetUser('id') userId: string, @Param('id') id: string) {
-    return this.bookingsService.remove(+id, userId);
+  remove(
+    @GetUser('id') userId: string,
+    @GetUser('role') role: Role,
+    @Param('id') id: string,
+  ) {
+    return this.bookingsService.remove(+id, userId, role);
   }
 }

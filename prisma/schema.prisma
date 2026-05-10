@@ -136,6 +136,7 @@ model User {
 
   bookings  Booking[]
   payments  Payment[]
+  reviews   Review[]
 }
 
 enum UserRole {
@@ -165,6 +166,7 @@ model Tour {
   updatedAt   DateTime @updatedAt       @db.Timestamptz(3)
 
   bookings    Booking[]
+  reviews     Review[]
 }
 
 
@@ -200,6 +202,7 @@ enum BookingStatus {
   PENDING
   ACTIVE
   CONFIRMED
+  COMPLETED
   CANCELLED
 }
 
@@ -261,4 +264,27 @@ model Contact {
   isRead    Boolean  @default(false)
 
   createdAt DateTime @default(now())  @db.Timestamptz(3)
+}
+
+
+
+
+model Review {
+  id          String   @id @default(cuid())
+  rating      Int
+  comment     String   @db.Text
+
+  isVisible   Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  tourId      Int
+  tour        Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  @@unique([userId, tourId])
 }

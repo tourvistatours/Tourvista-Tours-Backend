@@ -2,15 +2,25 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { FilterContactDto } from './dto/filter-contact.dto';
+import { MailService } from '../../infrastructure/mail/mail.service';
 
 @Injectable()
 export class ContactService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mailService: MailService,
+  ) {}
 
   async create(data: CreateContactDto) {
-    return this.prisma.contact.create({
-      data,
+    const inquiry = await this.prisma.contact.create({ data });
+
+    // SEND ADMIN NOTIFICATION
+    const unreadCount = await this.prisma.contact.count({
+      where: { isRead: false },
     });
+    this.mailService.sendInquiryAlert(unreadCount);
+
+    return inquiry;
   }
 
   async findAll(filters: FilterContactDto) {

@@ -35,9 +35,21 @@ export class UsersService {
    * Admins see everything.
    */
   async findAll(query: UserQueryDto) {
-    const { page = 1, limit = 10, search, role } = query;
+    const { page = 1, limit = 10, search, role, fromDate, toDate } = query;
     const skip = (page - 1) * limit;
 
+    // 1. Initialize the date filter object
+    const dateFilter: Prisma.DateTimeFilter = {};
+
+    if (fromDate) {
+      dateFilter.gte = new Date(new Date(fromDate).setHours(0, 0, 0, 0));
+    }
+
+    if (toDate) {
+      dateFilter.lte = new Date(new Date(toDate).setHours(23, 59, 59, 999));
+    }
+
+    // 2. Build the where clause
     const where: Prisma.UserWhereInput = {
       ...(role && { role }),
       ...(search && {
@@ -47,11 +59,7 @@ export class UsersService {
           { lastName: { contains: search, mode: 'insensitive' } },
         ],
       }),
-      ...((query.fromDate || query.toDate) && {
-        createdAt: {},
-        ...(query.fromDate && { createdAt: { gte: query.fromDate } }),
-        ...(query.toDate && { createdAt: { lte: query.toDate } }),
-      }),
+      ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter }),
     };
 
     try {
@@ -65,7 +73,15 @@ export class UsersService {
         }),
       ]);
 
-      return { total, data };
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
     } catch (error) {
       this.handleError('fetching users', error);
     }

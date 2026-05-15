@@ -16,10 +16,14 @@ import { UpdateBookingUserDto } from './dto/update-booking-user.dto';
 import { BookingStatus } from '../../common/enums/booking-status.enum';
 import { addDays } from 'date-fns';
 import { Role } from '../../auth/enums/role.enum';
+import { MailService } from '../../infrastructure/mail/mail.service';
 
 @Injectable()
 export class BookingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mailService: MailService,
+  ) {}
 
   /**
    * HELPER: CHECKS IF A TOUR IS AVAILABLE FOR A SPECIFIC DATE RANGE
@@ -53,7 +57,6 @@ export class BookingsService {
     // VERIFY TOUR EXISTENCE AND ACTIVE STATUS
     const tour = await this.prisma.tour.findUnique({
       where: { id: data.tourId },
-      select: { duration: true, isActive: true },
     });
 
     if (!tour)
@@ -76,9 +79,18 @@ export class BookingsService {
         userId,
         checkoutDate: end,
       },
-      select: {
-        id: true,
+      include: {
+        user: true,
       },
+    });
+
+    // SEND NOTIFICATION EMAIL
+    this.mailService.sendBookingDetail({
+      tourTitle: tour.title,
+      userName: booking.user.firstName + ' ' + booking.user.lastName,
+      travelDate: booking.arrivalDate,
+      paxCount: booking.numberOfTravellers,
+      amount: booking.totalAmount,
     });
 
     return { bookingId: booking.id };

@@ -1,9 +1,11 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { QueryPaymentDto } from './dto/query-payment.dto';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
@@ -16,6 +18,21 @@ export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
 
   constructor(private prisma: PrismaService) {}
+
+  /**
+   * ADMIN: Returns total number of payments.
+   * Used for analytics.
+   */
+  async getStats() {
+    try {
+      // GET THE GRAND TOTAL
+      const totalCount = await this.prisma.user.count();
+
+      return { total: totalCount };
+    } catch (error) {
+      this.handleError('fetching payment stats', error);
+    }
+  }
 
   async create(userId: string, data: CreatePaymentDto) {
     // VALIDATE OWNERSHIP AND EXISTENCE
@@ -73,7 +90,7 @@ export class PaymentsService {
     const skip = (page - 1) * limit;
 
     // BUILD DYNAMIC FILTER OBJECT
-    const where: any = {
+    const where: Prisma.PaymentWhereInput = {
       ...(query.type && { type: query.type }),
       ...(query.status && { status: query.status }),
       ...((query.minAmount || query.maxAmount) && {
@@ -101,6 +118,15 @@ export class PaymentsService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: {
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
       }),
       this.prisma.payment.count({ where }),
     ]);
@@ -168,5 +194,20 @@ export class PaymentsService {
         'Reconciliation failed: The payment and booking status could not be updated',
       );
     }
+  }
+
+  /**
+   * Internal Error Handler for Logging and Standardized Response
+   */
+  private handleError(action: string, error: any) {
+    this.logger.error(`Error ${action}: ${error.message}`, error.stack);
+    if (
+      error instanceof NotFoundException ||
+      error instanceof BadRequestException
+    )
+      throw error;
+    throw new InternalServerErrorException(
+      `Failed to process review request during ${action}.`,
+    );
   }
 }

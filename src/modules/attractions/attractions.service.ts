@@ -83,7 +83,7 @@ export class AttractionsService {
               select: { attractionItems: true },
             },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: 'asc' },
         }),
       ]);
 
@@ -225,7 +225,7 @@ export class AttractionsService {
   async findAllItems(attractionId: string) {
     const items = await this.prisma.attractionItem.findMany({
       where: { attractionId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
 
     return items || [];
@@ -478,7 +478,7 @@ export class AttractionsService {
               orderBy: { createdAt: 'asc' },
             },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: 'asc' },
         }),
       ]);
 

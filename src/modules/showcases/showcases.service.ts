@@ -83,7 +83,7 @@ export class ShowcasesService {
               select: { showcaseItems: true },
             },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: 'asc' },
         }),
       ]);
 
@@ -225,7 +225,7 @@ export class ShowcasesService {
   async findAllItems(showcaseId: string) {
     const items = await this.prisma.showcaseItem.findMany({
       where: { showcaseId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
 
     return items || [];
@@ -478,7 +478,7 @@ export class ShowcasesService {
               orderBy: { createdAt: 'asc' },
             },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: 'asc' },
         }),
       ]);
 

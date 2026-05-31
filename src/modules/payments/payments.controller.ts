@@ -14,6 +14,7 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 import { GetUser } from '../../auth/decorators/get-user.decorator';
 import { QueryPaymentDto } from './dto/query-payment.dto';
 import { ApiOperation } from '@nestjs/swagger';
+import { Public } from '../../auth/decorators/public.decorator';
 
 @Controller('v1/payments')
 export class PaymentsController {
@@ -26,14 +27,36 @@ export class PaymentsController {
     return this.paymentsService.getStats();
   }
 
-  @Post()
+  // NEED REMOVE LATER
+  // @Post()
+  // @Roles(Role.USER)
+  // @ApiOperation({ summary: 'Create a new payment' })
+  // create(
+  //   @GetUser('id') userId: string,
+  //   @Body() createPaymentDto: CreatePaymentDto,
+  // ) {
+  //   return this.paymentsService.create(userId, createPaymentDto);
+  // }
+
+  @Post('/initiate')
   @Roles(Role.USER)
-  @ApiOperation({ summary: 'Create a new payment' })
-  create(
+  @ApiOperation({
+    summary: 'Initiates a secure payment intent config for PayHere',
+  })
+  initiatePayment(
     @GetUser('id') userId: string,
     @Body() createPaymentDto: CreatePaymentDto,
   ) {
-    return this.paymentsService.create(userId, createPaymentDto);
+    return this.paymentsService.initiatePaymentIntent(userId, createPaymentDto);
+  }
+
+  @Post('/webhook')
+  @Public()
+  @ApiOperation({
+    summary: 'Asynchronous notification endpoint for PayHere gateway',
+  })
+  handleWebhook(@Body() payload: any) {
+    return this.paymentsService.processWebhook(payload);
   }
 
   @Get('admin')

@@ -83,7 +83,7 @@ export class CultureService {
               select: { cultureItems: true },
             },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: 'asc' },
         }),
       ]);
 
@@ -225,7 +225,7 @@ export class CultureService {
   async findAllItems(cultureId: string) {
     const items = await this.prisma.cultureItem.findMany({
       where: { cultureId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'asc' },
     });
 
     return items || [];
@@ -478,7 +478,7 @@ export class CultureService {
               orderBy: { createdAt: 'asc' },
             },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: 'asc' },
         }),
       ]);
 

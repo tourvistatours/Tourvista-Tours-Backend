@@ -196,7 +196,7 @@ export class BookingsService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          payment: {
+          payments: {
             select: {
               id: true,
               type: true,
@@ -289,7 +289,7 @@ export class BookingsService {
   async remove(id: number, userId: string, role: Role) {
     const current = await this.prisma.booking.findUnique({
       where: { id },
-      include: { payment: true },
+      include: { payments: true },
     });
 
     if (!current) throw new NotFoundException('Booking not found');
@@ -308,7 +308,7 @@ export class BookingsService {
     }
 
     // 3. Payment Dependency Check
-    if (current.payment) {
+    if (current.payments && current.payments.length > 0) {
       throw new BadRequestException(
         'Cannot delete booking because it has associated payment records. Please cancel the booking instead.',
       );

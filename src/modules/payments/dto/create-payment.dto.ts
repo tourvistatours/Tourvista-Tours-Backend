@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsEnum, IsNotEmpty, Min } from 'class-validator';
 import { PaymentType } from '../../../common/enums/payment-type.enum';
+import { PaymentMethod } from '../../../common/enums/payment-method.enum';
 
 export class CreatePaymentDto {
   @Type(() => Number)
@@ -15,4 +16,8 @@ export class CreatePaymentDto {
   @IsEnum(PaymentType)
   @IsNotEmpty({ message: 'Payment Type is required' })
   type: PaymentType;
+
+  @IsEnum(PaymentMethod)
+  @IsNotEmpty({ message: 'Payment Method is required' })
+  method: PaymentMethod = PaymentMethod.PAYHERE;
 }

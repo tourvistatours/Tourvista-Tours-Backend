@@ -21,7 +21,7 @@ export class CreateTourDto {
   @IsString()
   @IsNotEmpty({ message: 'Description is required' })
   @MinLength(10, { message: 'Description must be at least 10 characters' })
-  @MaxLength(1000, { message: 'Description must be at most 1000 characters' })
+  @MaxLength(2000, { message: 'Description must be at most 2000 characters' })
   description!: string;
 
   @IsString()

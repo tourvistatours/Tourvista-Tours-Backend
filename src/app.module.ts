@@ -17,7 +17,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
 import { ClerkClientProvider } from './infrastructure/providers/clerk.provider';
 import { CloudinaryModule } from './infrastructure/cloudinary/cloudinary.module';
 import { MailModule } from './infrastructure/mail/mail.module';
-import { PayhereModule } from './infrastructure/payhere/payhere.module';
+import { SeylanMpgsModule } from './infrastructure/seylan/seylan-mpgs.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -54,8 +54,9 @@ import { UsersModule } from './modules/users/users.module';
         RESEND_API_KEY: Joi.string().required(),
         ADMIN_EMAIL: Joi.string().required(),
 
-        PAYHERE_MERCHANT_ID: Joi.string().required(),
-        PAYHERE_MERCHANT_SECRET: Joi.string().required(),
+        SEYLAN_GATEWAY_URL: Joi.string().required(),
+        SEYLAN_MERCHANT_ID: Joi.string().required(),
+        SEYLAN_API_PASSWORD: Joi.string().required(),
       }),
     }),
 
@@ -63,7 +64,7 @@ import { UsersModule } from './modules/users/users.module';
     PrismaModule,
     CloudinaryModule,
     MailModule,
-    PayhereModule,
+    SeylanMpgsModule,
 
     // 🧩 Feature modules
     WebhookModule,

@@ -12,7 +12,7 @@ import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { BookingStatus } from '../../common/enums/booking-status.enum';
 import { PaymentType } from '../../common/enums/payment-type.enum';
 import { PaymentStatus } from '../../common/enums/payment-status.enum';
-import { PayhereService } from '../../infrastructure/payhere/payhere.service';
+import { SeylanMpgsService } from '../../infrastructure/seylan/seylan-mpgs.service';
 // import { MailService } from '../../infrastructure/mail/mail.service';
 
 @Injectable()
@@ -21,7 +21,7 @@ export class PaymentsService {
 
   constructor(
     private prisma: PrismaService,
-    private payhereService: PayhereService,
+    private seylanMpgsService: SeylanMpgsService,
     // private mailService: MailService,
   ) {}
 
@@ -117,36 +117,39 @@ export class PaymentsService {
       );
     }
 
-    // Generate a distinct order Tracking String for this specific attempt instance
-    const orderId = `TV-${booking.id}-${Date.now()}`;
+    // Generate a order id string to pass to the gateway
+    const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '');
+    const orderId = `TV-${String(booking.id).padStart(6, '0')}-${dateStr}`;
 
-    const basePayload = await this.payhereService.generatePaymentPayload(
+    const gatewaySession = await this.seylanMpgsService.initiateCheckoutSession(
       orderId,
       data.amount,
-      {
-        firstName: booking.user.firstName,
-        lastName: booking.user.lastName,
-        email: booking.user.email,
-      },
+      'LKR',
     );
 
+    // console.log(gatewaySession);
+
     // Create a tracking record stub for this specific attempt session instance
-    await this.prisma.payment.create({
-      data: {
-        bookingId: data.bookingId,
-        userId: userId,
-        amount: data.amount,
-        type: data.type, // FULL or ADVANCE
-        status: PaymentStatus.PENDING,
-        transactionId: orderId, // Pass our orderId tracking string here initially
-      },
-    });
+    // await this.prisma.payment.create({
+    //   data: {
+    //     bookingId: data.bookingId,
+    //     userId: userId,
+    //     amount: data.amount,
+    //     type: data.type, // FULL or ADVANCE
+    //     status: PaymentStatus.PENDING,
+    //     transactionId: orderId, // Pass our orderId tracking string here initially
+    //     gatewayData: {
+    //       successIndicator: gatewaySession.successIndicator,
+    //       sessionId: gatewaySession.session.id,
+    //     } as any,
+    //   },
+    // });
 
     return {
-      ...basePayload,
-      custom_1: userId,
-      custom_2: data.bookingId.toString(),
-      custom_3: orderId, // 💡 Pass the unique tracking string orderId here so the webhook can find this exact row!
+      sessionId: gatewaySession.session.id,
+      successIndicator: gatewaySession.successIndicator,
+      orderId: orderId,
+      amount: data.amount,
     };
   }
 
@@ -154,85 +157,76 @@ export class PaymentsService {
    * STEP 2: Securely capture payment feedback webhooks without causing unique constraint drops
    */
   async processWebhook(payload: any) {
-    this.payhereService.verifyWebhookSignature(payload);
+    // 1. Verify response validity structure according to Seylan signature parameter metrics
+    // If verifying via signature hashes is required, compute matching HMAC keys here.
 
-    const bookingId = parseInt(payload.custom_2, 10);
-    const internalOrderId = payload.custom_3; // The unique TV-... tracking string string we generated
-    const payhereGatewayId = payload.payment_id; // PayHere's unique network reference sequence string
-    const statusCode = payload.status_code;
+    const internalOrderId = payload.order.id; // Retain mapping reference string
+    const gatewayTransactionId = payload.transaction.id;
+    const gatewayResult = payload.result; // "SUCCESS", "FAILURE", etc.
 
     let targetStatus: PaymentStatus = PaymentStatus.FAILED;
-    if (statusCode === '2') targetStatus = PaymentStatus.SUCCESS;
-    if (statusCode === '0') targetStatus = PaymentStatus.PENDING;
-    if (statusCode === '-1' || statusCode === '-2')
-      targetStatus = PaymentStatus.CANCELLED;
+    if (gatewayResult === 'SUCCESS') targetStatus = PaymentStatus.SUCCESS;
+    if (gatewayResult === 'PENDING') targetStatus = PaymentStatus.PENDING;
 
     try {
       return await this.prisma.$transaction(async (tx) => {
-        // 1. Find and update the exact payment attempt session row
+        // Query the specific tracking record stub we made during initial checkout generation
         const currentPayment = await tx.payment.findFirst({
           where: { transactionId: internalOrderId },
         });
 
         if (!currentPayment) {
           throw new NotFoundException(
-            'Payment sequence record context tracking lost.',
+            'Payment sequence tracking context lost.',
           );
         }
 
-        const updatedPayment = await tx.payment.update({
+        await tx.payment.update({
           where: { id: currentPayment.id },
           data: {
             status: targetStatus,
-            transactionId: payhereGatewayId, // Overwrite with official PayHere network index string reference
+            transactionId: gatewayTransactionId, // Commit actual bank network confirmation ID string
             gatewayData: payload as any,
           },
         });
 
-        // 2. Compute dynamic financial balance checks if the payment was a success
+        // Recalculate your historical ledger updates
         if (targetStatus === PaymentStatus.SUCCESS) {
-          // Fetch all successful historical entries linked to this booking
           const allConfirmedPayments = await tx.payment.findMany({
-            where: { bookingId: bookingId, status: PaymentStatus.SUCCESS },
+            where: {
+              bookingId: currentPayment.bookingId,
+              status: PaymentStatus.SUCCESS,
+            },
           });
 
           const targetBooking = await tx.booking.findUnique({
-            where: { id: bookingId },
+            where: { id: currentPayment.bookingId },
           });
 
           const totalAccumulatedFunds = allConfirmedPayments.reduce(
             (sum, p) => sum + p.amount,
             0,
           );
-
-          // Determine if booking state metrics are finalized
           const isFullyPaid =
             totalAccumulatedFunds >= (targetBooking?.totalAmount || 0);
 
           await tx.booking.update({
-            where: { id: bookingId },
+            where: { id: currentPayment.bookingId },
             data: {
               status: isFullyPaid
                 ? BookingStatus.CONFIRMED
                 : BookingStatus.ACTIVE,
             },
           });
-
-          this.logger.log(
-            `Booking ID ${bookingId} balance updated. Total paid: $${totalAccumulatedFunds}`,
-          );
         }
 
         return { status: 'acknowledged' };
       });
     } catch (error) {
       this.logger.error(
-        `Webhook runtime matching fail tracking: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        error instanceof Error ? error.stack : undefined,
+        `Webhook sync execution failure: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
-      throw new BadRequestException(
-        'Data layer sequence adjustment failure execution error.',
-      );
+      throw new BadRequestException('Data layer sequence adjustment failure.');
     }
   }
 

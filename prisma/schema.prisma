@@ -222,10 +222,10 @@ model Payment {
   amount        Float
   type          PaymentType
 
-  method        PaymentMethod @default(PAYHERE)
+  method        PaymentMethod @default(SEYLAN_MPGS)
   status        PaymentStatus @default(PENDING)
 
-  transactionId String?       // WebXPay reference
+  transactionId String?       @unique
   gatewayData   Json?         // raw response from WebXPay
 
   createdAt     DateTime @default(now())  @db.Timestamptz(3)
@@ -246,8 +246,7 @@ enum PaymentStatus {
 }
 
 enum PaymentMethod {
-  PAYHERE
-  BANK_TRANSFER
+  SEYLAN_MPGS
   CASH
 }
 

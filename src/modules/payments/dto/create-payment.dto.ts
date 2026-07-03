@@ -19,5 +19,5 @@ export class CreatePaymentDto {
 
   @IsEnum(PaymentMethod)
   @IsNotEmpty({ message: 'Payment Method is required' })
-  method: PaymentMethod = PaymentMethod.PAYHERE;
+  method: PaymentMethod = PaymentMethod.SEYLAN_MPGS;
 }

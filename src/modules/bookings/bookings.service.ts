@@ -242,7 +242,7 @@ export class BookingsService {
   async updateByUser(id: number, userId: string, data: UpdateBookingUserDto) {
     const current = await this.prisma.booking.findUnique({
       where: { id },
-      include: { tour: { select: { duration: true } } },
+      include: { tour: true },
     });
 
     if (!current || current.userId !== userId)
@@ -271,8 +271,16 @@ export class BookingsService {
       data.numberOfTravellers &&
       data.numberOfTravellers !== current.numberOfTravellers
     ) {
-      const pricePerHead = current.totalAmount / current.numberOfTravellers;
-      updateData.totalAmount = data.numberOfTravellers * pricePerHead;
+      if (
+        data.numberOfTravellers < current.tour.minGuests ||
+        data.numberOfTravellers > current.tour.maxGuests
+      ) {
+        throw new BadRequestException(
+          `Guest count must be between ${current.tour.minGuests} and ${current.tour.maxGuests} for this tour`,
+        );
+      }
+
+      updateData.totalAmount = current.tour.price * data.numberOfTravellers;
     }
 
     const booking = await this.prisma.booking.update({
@@ -284,6 +292,13 @@ export class BookingsService {
     });
 
     return { bookingId: booking.id };
+  }
+
+  async updateNotes(id: number, notes: string) {
+    return this.prisma.booking.update({
+      where: { id },
+      data: { notes },
+    });
   }
 
   async remove(id: number, userId: string, role: Role) {

@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Patch,
+  ParseIntPipe,
 } from '@nestjs/common';
 
 import { BookingsService } from './bookings.service';
@@ -54,26 +55,38 @@ export class BookingsController {
 
   @Patch(':id/admin')
   @Roles(Role.ADMIN)
-  updateByAdmin(@Param('id') id: string, @Body() body: UpdateBookingAdminDto) {
-    return this.bookingsService.updateByAdmin(+id, body);
+  updateByAdmin(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateBookingAdminDto,
+  ) {
+    return this.bookingsService.updateByAdmin(id, body);
   }
 
   @Patch(':id/user')
   @Roles(Role.USER)
   updateByUser(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @GetUser('id') userId: string,
     @Body() body: UpdateBookingUserDto,
   ) {
-    return this.bookingsService.updateByUser(+id, userId, body);
+    return this.bookingsService.updateByUser(id, userId, body);
+  }
+
+  @Patch(':id/user/notes')
+  @Roles(Role.USER)
+  updateNotes(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('notes') notes: string,
+  ) {
+    return this.bookingsService.updateNotes(id, notes);
   }
 
   @Delete(':id')
   remove(
     @GetUser('id') userId: string,
     @GetUser('role') role: Role,
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.bookingsService.remove(+id, userId, role);
+    return this.bookingsService.remove(id, userId, role);
   }
 }

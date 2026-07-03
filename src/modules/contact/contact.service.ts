@@ -1,4 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { FilterContactDto } from './dto/filter-contact.dto';
@@ -6,10 +12,27 @@ import { MailService } from '../../infrastructure/mail/mail.service';
 
 @Injectable()
 export class ContactService {
+  private readonly logger = new Logger(ContactService.name);
+
   constructor(
     private prisma: PrismaService,
     private mailService: MailService,
   ) {}
+
+  /**
+   * ADMIN: Returns total number of contacts.
+   * Used for analytics.
+   */
+  async getStats() {
+    try {
+      // GET THE GRAND TOTAL
+      const totalCount = await this.prisma.contact.count();
+
+      return { total: totalCount };
+    } catch (error) {
+      this.handleError('fetching contact stats', error);
+    }
+  }
 
   async create(data: CreateContactDto) {
     const inquiry = await this.prisma.contact.create({ data });
@@ -95,5 +118,20 @@ export class ContactService {
 
   async remove(id: number) {
     return this.prisma.contact.delete({ where: { id } });
+  }
+
+  /**
+   * Internal Error Handler for Logging and Standardized Response
+   */
+  private handleError(action: string, error: any) {
+    this.logger.error(`Error ${action}: ${error.message}`, error.stack);
+    if (
+      error instanceof NotFoundException ||
+      error instanceof BadRequestException
+    )
+      throw error;
+    throw new InternalServerErrorException(
+      `Failed to process review request during ${action}.`,
+    );
   }
 }

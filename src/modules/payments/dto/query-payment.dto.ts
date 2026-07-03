@@ -12,6 +12,10 @@ export class QueryPaymentDto {
   limit?: number;
 
   @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
   @IsNumberString()
   minAmount?: number;
 

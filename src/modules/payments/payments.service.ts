@@ -16,6 +16,7 @@ import { SeylanMpgsService } from '../../infrastructure/seylan/seylan-mpgs.servi
 import { PaymentMethod } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { timingSafeEqual } from 'crypto';
+import { isNumber } from 'class-validator';
 
 @Injectable()
 export class PaymentsService {
@@ -75,8 +76,8 @@ export class PaymentsService {
     const now = new Date();
     const timeStr = [
       String(now.getHours()).padStart(2, '0'),
-      String(now.getMinutes()).padStart(2, '0'),
-      String(now.getSeconds()).padStart(2, '0'),
+      // String(now.getMinutes()).padStart(2, '0'),
+      // String(now.getSeconds()).padStart(2, '0'),
     ].join('');
 
     const orderId = `TV-${String(booking.id).padStart(6, '0')}-${dateStr}-${timeStr}`;
@@ -276,6 +277,13 @@ export class PaymentsService {
 
     // BUILD DYNAMIC FILTER OBJECT
     const where: Prisma.PaymentWhereInput = {
+      ...(query.search && {
+        OR: [
+          { id: { equals: Number(query.search) || 0 } },
+          { bookingId: { equals: Number(query.search) || 0 } },
+          { transactionId: { contains: query.search, mode: 'insensitive' } },
+        ],
+      }),
       ...(query.type && { type: query.type }),
       ...(query.status && { status: query.status }),
       ...((query.minAmount || query.maxAmount) && {

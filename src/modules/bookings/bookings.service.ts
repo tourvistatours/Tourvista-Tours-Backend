@@ -201,6 +201,7 @@ export class BookingsService {
               id: true,
               type: true,
               amount: true,
+              refundedAmount: true,
             },
           },
           tour: {

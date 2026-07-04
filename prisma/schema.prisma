@@ -219,8 +219,9 @@ model Payment {
   userId        String
   user          User          @relation(fields: [userId], references: [id])
 
-  amount        Float
-  type          PaymentType
+  amount         Float
+  refundedAmount Float        @default(0)
+  type           PaymentType
 
   method        PaymentMethod @default(SEYLAN_MPGS)
   status        PaymentStatus @default(PENDING)

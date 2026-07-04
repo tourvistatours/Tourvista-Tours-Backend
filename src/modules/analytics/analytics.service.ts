@@ -21,8 +21,10 @@ export class AnalyticsService {
       this.prisma.user.count(),
       this.prisma.tour.count(),
       this.prisma.payment.findMany({
-        where: { status: PaymentStatus.SUCCESS },
-        select: { amount: true },
+        where: {
+          status: { in: [PaymentStatus.SUCCESS, PaymentStatus.REFUNDED] },
+        },
+        select: { amount: true, refundedAmount: true },
       }),
       this.prisma.booking.count(),
       this.prisma.contact.count({ where: { isRead: false } }),
@@ -30,7 +32,7 @@ export class AnalyticsService {
     ]);
 
     const totalIncome = paymentsData.reduce(
-      (sum, item) => sum + item.amount,
+      (sum, item) => sum + (item.amount - (item.refundedAmount ?? 0)),
       0,
     );
 
@@ -52,10 +54,10 @@ export class AnalyticsService {
       }),
       this.prisma.payment.findMany({
         where: {
-          status: PaymentStatus.SUCCESS,
+          status: { in: [PaymentStatus.SUCCESS, PaymentStatus.REFUNDED] },
           createdAt: { gte: new Date(`${currentYear}-01-01`) },
         },
-        select: { createdAt: true, amount: true },
+        select: { createdAt: true, amount: true, refundedAmount: true },
       }),
       this.prisma.contact.findMany({
         where: { createdAt: { gte: new Date(`${currentYear}-01-01`) } },
@@ -106,7 +108,8 @@ export class AnalyticsService {
     // Populate Income values per month
     monthlyPayments.forEach((p) => {
       const m = p.createdAt.getMonth();
-      monthlyMap[m].income += p.amount;
+      const netMonthlyIncome = p.amount - (p.refundedAmount ?? 0);
+      monthlyMap[m].income += netMonthlyIncome;
     });
 
     // Populate Messages count per month

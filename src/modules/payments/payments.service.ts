@@ -338,7 +338,7 @@ export class PaymentsService {
   /**
    * ADMIN: Reverses a successful payment entry on the gateway AND local database
    */
-  async refund(paymentId: number) {
+  async refund(paymentId: number, amount: number) {
     try {
       // 1. Fetch targeted payment record safely outside tx to prepare gateway payload
       const payment = await this.prisma.payment.findUnique({
@@ -363,10 +363,16 @@ export class PaymentsService {
         );
       }
 
+      if (amount <= 0 || amount > payment.amount) {
+        throw new BadRequestException(
+          `Invalid partial refund amount. Must be greater than 0 and less than or equal to ${payment.amount}.`,
+        );
+      }
+
       // 2. RUN THE REAL GATEWAY REFUND FIRST
       const gatewayResponse = await this.seylanMpgsService.executeRefund(
         payment.transactionId,
-        payment.amount,
+        amount,
       );
 
       if (gatewayResponse.result !== 'SUCCESS') {
@@ -381,6 +387,7 @@ export class PaymentsService {
           where: { id: paymentId },
           data: {
             status: PaymentStatus.REFUNDED,
+            refundedAmount: amount,
             gatewayData: {
               ...(payment.gatewayData as Record<string, any>),
               refundLog: gatewayResponse,

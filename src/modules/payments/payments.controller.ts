@@ -17,6 +17,7 @@ import { GetUser } from '../../auth/decorators/get-user.decorator';
 import { QueryPaymentDto } from './dto/query-payment.dto';
 import { ApiOperation } from '@nestjs/swagger';
 import { Public } from '../../auth/decorators/public.decorator';
+import { RefundPaymentDto } from './dto/refund-payment.dto';
 
 @Controller('v1/payments')
 export class PaymentsController {
@@ -66,7 +67,10 @@ export class PaymentsController {
     summary:
       'Admin initiated database ledger entry reversal and parent booking state reduction',
   })
-  async refund(@Param('id', ParseIntPipe) id: number) {
-    return this.paymentsService.refund(Number(id));
+  async refund(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() refundDto: RefundPaymentDto,
+  ) {
+    return this.paymentsService.refund(Number(id), refundDto.amount);
   }
 }

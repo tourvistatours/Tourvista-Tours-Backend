@@ -10,7 +10,7 @@ export class CreatePaymentDto {
 
   @Type(() => Number)
   @IsNotEmpty({ message: 'Amount is required' })
-  @Min(10, { message: 'Minimum amount is 10' })
+  @Min(5, { message: 'Minimum amount is 5' })
   amount: number;
 
   @IsEnum(PaymentType)

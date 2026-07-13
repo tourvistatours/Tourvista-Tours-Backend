@@ -57,11 +57,11 @@ export class SeylanMpgsService {
 
     try {
       // Need to Comment
-      console.log('Seylan MPGS Request:', {
-        url: sessionUrl,
-        method: 'POST',
-        body: requestBody,
-      });
+      // console.log('Seylan MPGS Request:', {
+      //   url: sessionUrl,
+      //   method: 'POST',
+      //   body: requestBody,
+      // });
 
       const response = await fetch(sessionUrl, {
         method: 'POST',
@@ -85,10 +85,10 @@ export class SeylanMpgsService {
       const responseData: SeylanCheckoutSessionResponse = await response.json();
 
       // Need to Comment
-      console.log('Seylan MPGS Response:', {
-        status: response.status,
-        data: responseData,
-      });
+      // console.log('Seylan MPGS Response:', {
+      //   status: response.status,
+      //   data: responseData,
+      // });
 
       if (responseData.result === 'FAILURE') {
         throw new InternalServerErrorException(
